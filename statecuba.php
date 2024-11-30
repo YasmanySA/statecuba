@@ -54,12 +54,13 @@ class statecuba extends Module
 
         if (version_compare($current_version, $remote_version, '<')) {
             $this->context->controller->warnings[] = $this->l('Una nueva versión del módulo está disponible: ') . $remote_version;
+            $this->context->controller->confirmations[] = $this->l('Haga clic en el botón de abajo para actualizar el módulo a la versión ') . $remote_version;
         }
     }
 
     private function getRemoteVersion()
     {
-        $url = 'https://raw.githubusercontent.com/YasmanySA/tasaseltoque/main/composer.json'; // URL del archivo con la versión más reciente
+        $url = 'https://raw.githubusercontent.com/YasmanySA/statecuba/main/composer.json'; // URL del archivo con la versión más reciente
         $json = file_get_contents($url);
 
         if ($json === false) {
@@ -107,6 +108,61 @@ class statecuba extends Module
         }
 
         return true;
+    }
+
+    public function getContent()
+    {
+        $html = '<h2>' . $this->displayName . '</h2>';
+
+        if (Tools::isSubmit('update_statecuba')) {
+            $this->performUpdate();
+        }
+
+        $html .= $this->renderUpdateButton();
+
+        return $html;
+    }
+
+    private function performUpdate()
+    {
+        $url = 'https://github.com/YasmanySA/statecuba/archive/refs/heads/main.zip'; // URL del archivo ZIP del repositorio
+        $zipFile = _PS_MODULE_DIR_ . $this->name . '/update.zip';
+        $extractPath = _PS_MODULE_DIR_ . $this->name;
+
+        // Descargar el archivo ZIP
+        file_put_contents($zipFile, fopen($url, 'r'));
+
+        // Extraer el archivo ZIP
+        $zip = new ZipArchive;
+        if ($zip->open($zipFile) === true) {
+            $zip->extractTo($extractPath);
+            $zip->close();
+            unlink($zipFile); // Eliminar el archivo ZIP descargado
+
+            // Reemplazar los archivos del módulo con los archivos extraídos
+            $this->recurseCopy($extractPath . '/statecuba-main/', $extractPath);
+
+            // Eliminar los archivos temporales extraídos
+            $this->deleteDir($extractPath . '/statecuba-main/');
+
+            // Confirmación de que el módulo se ha actualizado
+            $this->context->controller->confirmations[] = $this->l('El módulo se ha actualizado a la última versión.');
+        } else {
+            $this->context->controller->errors[] = $this->l('No se pudo actualizar el módulo.');
+        }
+    }
+
+    private function renderUpdateButton()
+    {
+        $remote_version = $this->getRemoteVersion();
+
+        if (version_compare($this->version, $remote_version, '<')) {
+            return '<form action="' . $_SERVER['REQUEST_URI'] . '" method="post">
+                        <input type="submit" name="update_statecuba" value="' . $this->l('Actualizar a la versión ') . $remote_version . '" class="btn btn-primary" />
+                    </form>';
+        }
+
+        return '';
     }
 
     private function toggleEnable($enable)
@@ -190,5 +246,40 @@ class statecuba extends Module
 
         // Reiniciar el ID de la tabla state
         Db::getInstance()->execute('ALTER TABLE ' . _DB_PREFIX_ . 'state AUTO_INCREMENT = ' . ((int)$last_id + 1));
+    }
+
+    private function recurseCopy($src, $dst)
+    {
+        $dir = opendir($src);
+        @mkdir($dst);
+        while (false !== ($file = readdir($dir))) {
+            if (($file != '.') && ($file != '..')) {
+                if (is_dir($src . '/' . $file)) {
+                    $this->recurseCopy($src . '/' . $file, $dst . '/' . $file);
+                } else {
+                    copy($src . '/' . $file, $dst . '/' . $file);
+                }
+            }
+        }
+        closedir($dir);
+    }
+
+    private function deleteDir($dirPath)
+    {
+        if (!is_dir($dirPath)) {
+            throw new InvalidArgumentException("$dirPath must be a directory");
+        }
+        if (substr($dirPath, strlen($dirPath) - 1, 1) != '/') {
+            $dirPath .= '/';
+        }
+        $files = glob($dirPath . '*', GLOB_MARK);
+        foreach ($files as $file) {
+            if (is_dir($file)) {
+                $this->deleteDir($file);
+            } else {
+                unlink($file);
+            }
+        }
+        rmdir($dirPath);
     }
 }
