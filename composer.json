@@ -1,0 +1,13 @@
+{
+  "name": "YasmanySA/statecuba",
+  "description": "Provincias de Cuba",
+  "type": "prestashop-module",
+  "authors": [
+    {
+      "name": "Studio PlayAzul",
+      "email": "tu_email@ejemplo.com"
+    }
+  ],
+  "version": "1.0",
+  "require": {}
+}

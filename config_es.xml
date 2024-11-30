@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module>
+  <name><![CDATA[statecuba]]></name>
+  <displayName><![CDATA[Provincias de Cuba]]></displayName>
+  <version><![CDATA[1.0]]></version>
+  <description/>
+  <author><![CDATA[Studio PlayAzul]]></author>
+  <author_uri/>
+  <tab><![CDATA[dashboard]]></tab>
+  <confirmUninstall/>
+  <is_configurable>0</is_configurable>
+  <need_instance>0</need_instance>
+  <limited_countries/>
+</module>
